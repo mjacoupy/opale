@@ -33,14 +33,22 @@ st.markdown("""---""")
 
     
 uploaded_files = st.file_uploader("Selectionner les fichiers CSV", accept_multiple_files=True, type="csv")
+value = st.radio("Quelle colonne pour l'identifiant",
+     ('ID', 'Prénom + Nom'))
 
 if uploaded_files:
     dfc = None
-    
+
     st.markdown("---")
     for iCpt, uploaded_file in enumerate(uploaded_files):
-        df = pd.read_csv(uploaded_file, sep=';', index_col="ID")
-        with st.expander("See CSV file - "+str(uploaded_file.name)):
+        if value == 'ID':
+            df = pd.read_csv(uploaded_file, sep=';', index_col="ID")
+        else:
+            df = pd.read_csv(uploaded_file, sep=';')
+            df['ID'] = df['Nom']+df['Prenom']
+            df.set_index('ID')
+        
+        with st.expander(str(uploaded_file.name)):
 
             st.dataframe(df)
         dfc = pd.concat([dfc, df], axis=1)
@@ -48,7 +56,10 @@ if uploaded_files:
    
     df_tmp = dfc.groupby(level=0, axis=1).apply(lambda x: x.apply(sjoin, axis=1))
 
-    df_final = df_tmp.applymap(lambda x: x.split(';')[0]).reset_index()   
+    if value == 'ID':
+        df_final = df_tmp.applymap(lambda x: x.split(';')[0]).reset_index()   
+    else:
+        df_final = df_tmp.applymap(lambda x: x.split(';')[0])
     
     st.markdown("---")
     st.markdown("Document fusionné")
@@ -64,5 +75,6 @@ if uploaded_files:
         data=csv,
         file_name='merge_file.csv',
         mime='text/csv')
+    
     
         

@@ -66,7 +66,9 @@ if uploaded_files:
     ##########
 
     st.markdown("---")
+    l = []
     for iCpt, uploaded_file in enumerate(final_up_list):
+
             df = pd.read_csv(uploaded_file,
                              sep=';',
                              encoding='latin-1')
@@ -78,26 +80,31 @@ if uploaded_files:
                 st.dataframe(df_display)
                 st.markdown('Le document contient **'+str(df_display.shape[0])+' lignes** et **'+str(df_display.shape[1])+' colonnes**.')
 
+            globals()['df%s' % iCpt] = df
+            l.append(globals()['df%s' % iCpt])
 
-            concat_df = pd.concat([concat_df, df], axis=1)
+    button = st.button("Initier le processus de fusion")
+    if button:
+        concat_df = pd.concat(l, axis=1)
+        # concat_df = pd.concat([concat_df, df], axis=1)
 
 
-    st.markdown("---")
-    st.markdown("Document fusionné")
-    st.dataframe(concat_df)
-    st.markdown('Le document contient **'+str(concat_df.shape[0])+' lignes** et **'+str(concat_df.shape[1])+' colonnes**.')
+        st.markdown("---")
+        st.markdown("Document fusionné")
+        st.dataframe(concat_df)
+        st.markdown('Le document contient **'+str(concat_df.shape[0])+' lignes** et **'+str(concat_df.shape[1])+' colonnes**.')
 
 
-    merged_file_name = st.text_input(label="Entrer le nom du fichier incluant le .csv",
-                              value="merged_file.csv")
+        merged_file_name = st.text_input(label="Entrer le nom du fichier incluant le .csv",
+                                  value="merged_file.csv")
 
-    csv = convert_df(concat_df)
+        csv = convert_df(concat_df)
 
-    st.download_button(
-        label="Télécharger le fichier sous format CSV",
-        data=csv,
-        file_name=merged_file_name,
-        mime='text/csv')
+        st.download_button(
+            label="Télécharger le fichier sous format CSV",
+            data=csv,
+            file_name=merged_file_name,
+            mime='text/csv')
 
 
 #########################################################################################################################

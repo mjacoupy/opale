@@ -6,12 +6,10 @@ Created on Fri Mar 18 09:28:35 2022
 @author: maximejacoupy
 """
 
-
 # #######################################################################################################################
 #                                              # === LIBRAIRIES === #
 # #######################################################################################################################
 import streamlit as st
-from PIL import Image
 import pandas as pd
 
 
@@ -20,61 +18,92 @@ import pandas as pd
 # #######################################################################################################################
 
 
-def sjoin(x): 
-    return ';'.join(x[x.notnull()].astype(str))
+# def sjoin(x):
+#     """..."""
+#     return ';'.join(x[x.notnull()].astype(str))
+
+
+def convert_df(df):
+    """..."""
+    return df.to_csv().encode('utf-8')
 
 
 # #######################################################################################################################
-#                                              # === PROCESS NEW FILE === #
+#                                              # === PROCESS NEW EXPORTS === #
 # #######################################################################################################################
 st.title("OPALE - fusion des exports")
 st.markdown("""---""")
 
 
-    
+
 uploaded_files = st.file_uploader("Selectionner les fichiers CSV", accept_multiple_files=True, type="csv")
-value = st.radio("Quelle colonne pour l'identifiant",
-     ('ID', 'Prénom + Nom'))
 
 if uploaded_files:
-    dfc = None
+    concat_df = None
+
+    ##########
+    # Choix premier bloc
+    ##########
+    names = []
+    for iFile in uploaded_files:
+        names.append(iFile.name)
 
     st.markdown("---")
-    for iCpt, uploaded_file in enumerate(uploaded_files):
-        if value == 'ID':
-            df = pd.read_csv(uploaded_file, sep=';', index_col="ID")
-        else:
-            df = pd.read_csv(uploaded_file, sep=';')
-            df['ID'] = df['Nom']+df['Prenom']
-            df.set_index('ID')
-        
-        with st.expander(str(uploaded_file.name)):
+    first = st.radio(label='Choix du bloc de référence',
+                     options=names)
 
-            st.dataframe(df)
-        dfc = pd.concat([dfc, df], axis=1)
-        
-   
-    df_tmp = dfc.groupby(level=0, axis=1).apply(lambda x: x.apply(sjoin, axis=1))
+    final_up_list = []
+    for iCpt, iFile in enumerate(uploaded_files):
+        if iFile.name == first:
+            final_up_list.append(iFile)
+    for iCpt, iFile in enumerate(uploaded_files):
+        if iFile.name != first:
+            final_up_list.append(iFile)
 
-    if value == 'ID':
-        df_final = df_tmp.applymap(lambda x: x.split(';')[0]).reset_index()   
-    else:
-        df_final = df_tmp.applymap(lambda x: x.split(';')[0])
-    
+
+    ##########
+    # Affichage
+    ##########
+
+    st.markdown("---")
+    for iCpt, uploaded_file in enumerate(final_up_list):
+            df = pd.read_csv(uploaded_file,
+                             sep=';',
+                             encoding='latin-1')
+            df.set_index('initiales_nom')
+            df = df.add_prefix(str(iCpt+1)+'_')
+
+            with st.expander(str(uploaded_file.name)):
+                df_display = df.astype(str)
+                st.dataframe(df_display)
+                st.markdown('Le document contient **'+str(df_display.shape[0])+' lignes** et **'+str(df_display.shape[1])+' colonnes**.')
+
+
+            concat_df = pd.concat([concat_df, df], axis=1)
+
+
     st.markdown("---")
     st.markdown("Document fusionné")
-    st.dataframe(df_final)
-    
-    @st.cache
-    def convert_df(df):
-        return df.to_csv().encode('utf-8')
-    csv = convert_df(df_final)
+    st.dataframe(concat_df)
+    st.markdown('Le document contient **'+str(concat_df.shape[0])+' lignes** et **'+str(concat_df.shape[1])+' colonnes**.')
+
+
+    merged_file_name = st.text_input(label="Entrer le nom du fichier incluant le .csv",
+                              value="merged_file.csv")
+
+    csv = convert_df(concat_df)
 
     st.download_button(
-        label="Download data as CSV",
+        label="Télécharger le fichier sous format CSV",
         data=csv,
-        file_name='merge_file.csv',
+        file_name=merged_file_name,
         mime='text/csv')
-    
-    
-        
+
+
+#########################################################################################################################
+#########################################################################################################################
+
+#                                              # === END OF FILE === #
+
+#########################################################################################################################
+# #######################################################################################################################
